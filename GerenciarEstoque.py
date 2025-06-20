@@ -20,7 +20,7 @@ class GerenciarEstoque:
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS produtos(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo VARCHAR(6) NOT NULL,
                 nome VARCHAR(20) NOT NULL,
                 preco REAL NOT NULL,
                 quantidade INTEGER NOT NULL,
@@ -32,53 +32,57 @@ class GerenciarEstoque:
     def inserir_item(self, objProduto):
         self.objProduto = objProduto
 
-        varProduto = [(objProduto.nome,
+        # Verificar entrada do código > que 6 digitos
+
+
+        varProduto = [(objProduto.codigo,
+                        objProduto.nome,
                         objProduto.preco,
                         objProduto.quantidade,
                         objProduto.categorias_id)]
 
 
         cur.executemany("""
-                INSERT INTO produtos('nome', 'preco', 'quantidade', 'categorias_id')
-                VALUES (?,?,?,?)
+                INSERT INTO produtos('codigo','nome', 'preco', 'quantidade', 'categorias_id')
+                VALUES (?,?,?,?,?)
             """, varProduto)
 
         conn.commit()
 
-        return f"\nDADOS PRODUTO CADASTRADO\n\n" + "NOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(objProduto.nome, objProduto.preco, objProduto.quantidade, objProduto.categorias_id)
+        return f"\nDADOS PRODUTO CADASTRADO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(objProduto.codigo, objProduto.nome, objProduto.preco, objProduto.quantidade, objProduto.categorias_id)
 
 
 
-    def mostrar_item(self, id_produto):
+    def mostrar_item(self, codigo_produto):
         item = cur.execute("""
             SELECT * FROM produtos
-            WHERE id = ? 
-        """, (id_produto,)).fetchone()
+            WHERE codigo = ? 
+        """, (codigo_produto,)).fetchone()
 
-        return "\nDADOS PRODUTO\n\n" + "NOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(item[1], item[2], item[3], item[4])
+        return "\nDADOS PRODUTO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(item[0],item[1], item[2], item[3], item[4])
 
-    def editar_item(self, id_produto, campo, novo_valor):
+    def editar_item(self, codigo_produto, campo, novo_valor):
         #ANTI SQL Injection
-        campos_permitidos = ["nome", "preco", "quantidade", "categorias_id"]
+        campos_permitidos = ["codigo","nome", "preco", "quantidade", "categorias_id"]
         if campo not in campos_permitidos:
             raise ValueError(f"Campo inválido: {campo}")
 
-        sql = f"UPDATE produtos SET {campo} = ? WHERE id = ?"
+        sql = f"UPDATE produtos SET {campo} = ? WHERE codigo = ?"
 
-        cur.execute(sql, (novo_valor, id_produto))
+        cur.execute(sql, (novo_valor, codigo_produto))
         conn.commit()
 
-        return cur.rowcount  # número de linhas alteradas
+        return "Produto alterado com sucesso."
     
-    def deletar_item(self, id_produto):
+    def deletar_item(self, codigo_produto):
 
-        sql = f"SELECT * FROM produtos WHERE id = ?"
+        sql = f"SELECT * FROM produtos WHERE codigo = ?"
 
-        deletado = cur.execute(sql, (id_produto,)).fetchone()
+        deletado = cur.execute(sql, (codigo_produto,)).fetchone()
 
-        sql = f"DELETE FROM produtos WHERE id = ?"
+        sql = f"DELETE FROM produtos WHERE codigo = ?"
 
-        cur.execute(sql, (id_produto,))
+        cur.execute(sql, (codigo_produto,))
         conn.commit()
 
         return f"Produto '{deletado}' deletado."
