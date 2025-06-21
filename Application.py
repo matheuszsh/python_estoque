@@ -1,5 +1,10 @@
 import Produto
 import GerenciarEstoque
+import sqlite3
+
+conn = sqlite3.connect("estoque.db")
+
+cur = conn.cursor()
 
 from colorama import init as colorama_init, Fore
 
@@ -24,8 +29,23 @@ def main():
         if option_menu == 1:
             print(Fore.RED+"Informe os dados:\n")
             
-            # Verificar entrada do código > que 6 digitos
-            codigo = input(Fore.GREEN+"Código: ")
+            buffer_codigo = 6
+            codigo = ""
+
+            trava_loop = True
+            while trava_loop:
+                codigo = input(Fore.GREEN+"Código: ")
+
+                if len(codigo) > buffer_codigo:
+                    print("Código não pode ter mais de 6 digitos")
+                else:
+                    if verificar_existencia_codigo(codigo=codigo):
+                        print("O código digitado já existe.")
+                        trava_loop = True
+                    else:
+                        trava_loop = False
+                
+                
             nome = input(Fore.GREEN+"Nome: ")
             preco = float(input(Fore.GREEN+"Preço: "))
             qntd = int(input(Fore.GREEN+"Quantidade: "))
@@ -102,6 +122,18 @@ def informe_codigo():
 
     return codigo_produto
 
+def verificar_existencia_codigo(codigo):
+
+    sql = """
+        SELECT 1 FROM produtos WHERE codigo = ?
+    """
+
+    resp = cur.execute(sql, (codigo,)).fetchone()
+
+    if resp:
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
     main()

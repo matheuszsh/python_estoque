@@ -32,7 +32,10 @@ class GerenciarEstoque:
     def inserir_item(self, objProduto):
         self.objProduto = objProduto
 
-        # Verificar entrada do código > que 6 digitos
+        buffer_codigo = 6
+
+        if len(objProduto.codigo) > buffer_codigo:
+            raise ValueError(f"O código deve possuir {buffer_codigo} digitos.")
 
 
         varProduto = [(objProduto.codigo,
