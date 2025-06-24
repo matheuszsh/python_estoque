@@ -49,6 +49,10 @@ class GerenciarEstoque:
                 INSERT INTO produtos('codigo','nome', 'preco', 'quantidade', 'categorias_id')
                 VALUES (?,?,?,?,?)
             """, varProduto)
+        
+        logs_gen = "CRIADO"
+
+        self.gerar_logs(logs_gen)
 
         conn.commit()
 
@@ -89,3 +93,18 @@ class GerenciarEstoque:
         conn.commit()
 
         return f"Produto '{deletado}' deletado."
+    
+    def gerar_logs(self, evento):
+        
+        tipos_log = ["CRIADO"]
+
+        if evento in tipos_log:
+            sql = "INSERT INTO log_produtos('tipo_evento', 'codigo_produto')" \
+            "VALUES(?,?)"
+
+            cur.execute(sql, (evento, self.objProduto.codigo))
+
+        elif evento == "ALTERAR":
+            return
+        
+        conn.commit()

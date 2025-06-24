@@ -1,5 +1,5 @@
-import Produto
-import GerenciarEstoque
+from Produto import Produto
+from GerenciarEstoque import GerenciarEstoque
 import sqlite3
 
 conn = sqlite3.connect("estoque.db")
@@ -10,7 +10,7 @@ from colorama import init as colorama_init, Fore
 
 colorama_init()
 
-db = GerenciarEstoque.GerenciarEstoque()
+db = GerenciarEstoque()
 
 # CATEGORIAS
 # 1 - geral
@@ -40,18 +40,19 @@ def main():
                     print("Código não pode ter mais de 6 digitos")
                 else:
                     if verificar_existencia_codigo(codigo=codigo):
-                        print("O código digitado já existe.")
+                        print("Código do produto digitado já existe.")
                         trava_loop = True
                     else:
                         trava_loop = False
                 
                 
+
             nome = input(Fore.GREEN+"Nome: ")
             preco = float(input(Fore.GREEN+"Preço: "))
             qntd = int(input(Fore.GREEN+"Quantidade: "))
             cat = int(1)
 
-            objProduto = Produto.Produto(codigo, nome, preco, qntd, cat)
+            objProduto = Produto(codigo, nome, preco, qntd, cat)
 
             resp = db.inserir_item(objProduto)
 
@@ -63,9 +64,13 @@ def main():
         elif option_menu == 2:
             codigo_produto = informe_codigo()
 
-            resp = db.mostrar_item(codigo_produto)
+            if verificar_existencia_codigo(codigo=codigo_produto):
 
-            print(Fore.GREEN + resp)
+                resp = db.mostrar_item(codigo_produto)
+
+                print(Fore.GREEN + resp)
+            else:
+                print("Código do produto não foi cadastrado.")
 
             main()
         
