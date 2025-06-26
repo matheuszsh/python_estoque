@@ -1,5 +1,4 @@
 import sqlite3
-import colorama
 
 # Criando banco de dados ou abrindo caso exista
 conn = sqlite3.connect("estoque.db")

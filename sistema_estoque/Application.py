@@ -1,10 +1,5 @@
 from Produto import Produto
 from GerenciarEstoque import GerenciarEstoque
-import sqlite3
-
-conn = sqlite3.connect("estoque.db")
-
-cur = conn.cursor()
 
 from colorama import init as colorama_init, Fore
 
