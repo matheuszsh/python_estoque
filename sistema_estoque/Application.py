@@ -21,7 +21,8 @@ def main():
         print(Fore.GREEN + "\n1 - Cadastrar Produto") # Create
         print(Fore.GREEN + "2 - Mostrar Produto") # Read
         print(Fore.GREEN + "3 - Alterar Produto") # Update
-        print(Fore.GREEN + "4 - Deletar Produto\n\n") # Delete
+        print(Fore.GREEN + "4 - Deletar Produto\n") # Delete
+        print(Fore.GREEN + "5 - importar arquivo\n")
         print(Fore.RED + "0 - sair\n")
         option_menu = int(input(">>>:"))
 
@@ -39,7 +40,7 @@ def main():
                 if len(codigo) > buffer_codigo:
                     print("Código não pode ter mais de 6 digitos")
                 else:
-                    if verificar_existencia_codigo(codigo=codigo):
+                    if db.verificar_existencia_codigo(codigo=codigo):
                         print("Código do produto digitado já existe.")
                         trava_loop = True
                     else:
@@ -64,7 +65,7 @@ def main():
         elif option_menu == 2:
             codigo_produto = informe_codigo()
 
-            if verificar_existencia_codigo(codigo=codigo_produto):
+            if db.verificar_existencia_codigo(codigo=codigo_produto):
 
                 resp = db.mostrar_item(codigo_produto)
 
@@ -78,28 +79,34 @@ def main():
         elif option_menu == 3:
             codigo_produto = informe_codigo()
 
-            print("\nInforme Opção De Edição:\n\n")
-            print("0 - Código")
-            print("1 - Nome")
-            print("2 - Preço")
-            print("3 - Quantidade")
-            print("4 - Categoria")
+            if db.verificar_existencia_codigo(codigo=codigo_produto):
 
-            option_edit = int(input(">>>:"))
+                print("\nInforme Opção De Edição:\n\n")
+                print("0 - Código")
+                print("1 - Nome")
+                print("2 - Preço")
+                print("3 - Quantidade")
+                print("4 - Categoria")
 
-            option_edit_list = {
-                0:"codigo",
-                1:"nome",
-                2:"preço",
-                3:"quantidade",
-                4:"categorias_id"
-            }
+                option_edit = int(input(">>>:"))
 
-            edit = input(f"Edite {option_edit_list[option_edit]}:")
-        
-            resp = db.editar_item(codigo_produto, option_edit_list[option_edit], edit)
+                option_edit_list = {
+                    0:"codigo",
+                    1:"nome",
+                    2:"preco",
+                    3:"quantidade",
+                    4:"categorias_id"
+                }
+
+                print(f"Alterar {option_edit_list[option_edit]}:")
+                edit = input(">>>:")
             
-            print(resp)
+                resp = db.editar_item(codigo_produto, option_edit_list[option_edit], edit)
+                
+                print(resp)
+
+            else:
+                print("Código do produto não foi cadastrado.")
 
             main()
 
@@ -113,7 +120,12 @@ def main():
 
             main()
         
+        elif option_menu == 5:
+            db.importar_arquivo()
+
         elif option_menu == 0:
+            conn.close()
+
             print("Programa encerrado.")
         else:
             print("Esta opção não existe.")
@@ -126,19 +138,6 @@ def informe_codigo():
     codigo_produto = str(input(Fore.GREEN + ">>>:"))
 
     return codigo_produto
-
-def verificar_existencia_codigo(codigo):
-
-    sql = """
-        SELECT 1 FROM produtos WHERE codigo = ?
-    """
-
-    resp = cur.execute(sql, (codigo,)).fetchone()
-
-    if resp:
-        return True
-    else:
-        return False
 
 if __name__ == "__main__":
     main()
