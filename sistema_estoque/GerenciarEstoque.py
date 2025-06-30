@@ -1,8 +1,6 @@
 import sqlite3
 
-# Criando banco de dados ou abrindo caso exista
 conn = sqlite3.connect("estoque.db")
-# Cursor para executar os métodos do obj
 cur = conn.cursor()
 
 class GerenciarEstoque:
@@ -47,6 +45,28 @@ class GerenciarEstoque:
         """, (codigo_produto,)).fetchone()
 
         return "\nDADOS PRODUTO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(item[0],item[1], item[2], item[3], item[4])
+    
+    def entradas_saidas(self,codigo_produto, opcao_fluxo, qntd):
+        
+        if opcao_fluxo == 0:
+            sql = "UPDATE produtos " \
+            "SET quantidade = quantidade + ? " \
+            "WHERE codigo = ?"
+
+            msg = "Entrada: "
+
+        elif opcao_fluxo == 1:
+
+            sql = "UPDATE produtos " \
+            "SET quantidade = quantidade - ? " \
+            "WHERE codigo = ?"
+
+            msg = "Saída: "
+
+        cur.execute(sql, (qntd, codigo_produto))
+        conn.commit()
+
+        return msg + str(qntd)
 
     def editar_item(self, codigo_produto, campo, novo_valor):
         #ANTI SQL Injection
@@ -99,7 +119,7 @@ class GerenciarEstoque:
         
         tipos_log = {
             0 : "CRIADO",
-            1 : "ALTERADO"
+            1 : "ALTERADO",
         }
 
         if evento == None and codigo == None:
