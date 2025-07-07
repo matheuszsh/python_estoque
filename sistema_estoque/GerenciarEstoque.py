@@ -35,7 +35,7 @@ class GerenciarEstoque:
         conn.commit()
 
         return f"\nDADOS PRODUTO CADASTRADO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(objProduto.codigo, objProduto.nome, objProduto.preco, objProduto.quantidade, objProduto.categorias_id)
-
+       
 
 
     def mostrar_item(self, codigo_produto):
@@ -44,16 +44,24 @@ class GerenciarEstoque:
             WHERE codigo = ? 
         """, (codigo_produto,)).fetchone()
 
-        return "\nDADOS PRODUTO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(item[0],item[1], item[2], item[3], item[4])
-    
+        #"\nDADOS PRODUTO\n\n" + "CÓDIGO: {}\nNOME: {}\nPREÇO: {}\nQNTD: {}\nCAT ID: {}".format(item[0],item[1], item[2], item[3], item[4])
+        return item
+
     def entradas_saidas(self,codigo_produto, opcao_fluxo, qntd):
         
+        backup_valor_antigo = cur.execute(f"SELECT quantidade FROM produtos WHERE codigo = ?", (codigo_produto,)).fetchone()
+        backup_valor_antigo = backup_valor_antigo[0]
+
+        logs_gen = None
+
         if opcao_fluxo == 0:
             sql = "UPDATE produtos " \
             "SET quantidade = quantidade + ? " \
             "WHERE codigo = ?"
 
             msg = "Entrada: "
+
+            logs_gen = "ENTRADA"
 
         elif opcao_fluxo == 1:
 
@@ -63,8 +71,12 @@ class GerenciarEstoque:
 
             msg = "Saída: "
 
+            logs_gen = "SAIDA"
+
         cur.execute(sql, (qntd, codigo_produto))
         conn.commit()
+
+        self.gerar_logs(logs_gen,codigo=codigo_produto, valor_antigo=backup_valor_antigo, valor_novo=qntd, campo="quantidade")
 
         return msg + str(qntd)
 
@@ -87,7 +99,7 @@ class GerenciarEstoque:
 
         conn.commit()
 
-        return "Produto alterado com sucesso."
+        return f"Produto:{codigo_produto} campo '{campo}' alterado com sucesso: {novo_valor}\n"
     
     def deletar_item(self, codigo_produto):
 
@@ -99,6 +111,10 @@ class GerenciarEstoque:
 
         cur.execute(sql, (codigo_produto,))
         conn.commit()
+
+        logs_gen = "DELETADO"
+
+        self.gerar_logs(logs_gen, codigo=codigo_produto)
 
         return f"Produto '{deletado}' deletado."
     
@@ -117,38 +133,49 @@ class GerenciarEstoque:
 
     def gerar_logs(self, evento=None ,codigo=None, valor_antigo=None, valor_novo=None, campo=None):
         
+        # OPÇÂOES DE LOG
         tipos_log = {
             0 : "CRIADO",
-            1 : "ALTERADO",
+            1 : "ALTERADO", # ESTADO
+            2 : "ENTRADA", # ESTADO
+            3 : "SAIDA", # ESTADO
+            4 : "DELETADO"
         }
+
+        # CONTADOR DE LINHAS
+        count = cur.execute("SELECT COUNT(*) FROM log_produtos WHERE codigo_produto = ?", (codigo,)).fetchone()[0]
+
+        count_create = codigo+'-'+str(cur.execute("SELECT COUNT(*) FROM log_produtos WHERE codigo_produto = ? AND tipo_evento = 'DELETADO'", (codigo,)).fetchone()[0])
+        
+        if int(count_create[7:9]) < 0:
+            count_create = codigo+'-0'
+
+        # PADRÃO PARA LOGs DE ESTADO
+        sql = "INSERT INTO log_produtos('tipo_evento', 'valor_anterior', 'novo_valor', 'codigo_produto', 'campo', 'instancia', 'instancia_codigo')" \
+            "VALUES(?,?,?,?,?,?,?)"
 
         if evento == None and codigo == None:
             return
 
-        if evento == tipos_log[0]:
-            sql = "INSERT INTO log_produtos('tipo_evento', 'codigo_produto', 'instancia')" \
-            "VALUES(?,?,?)"
+        if evento == tipos_log[0] or evento == tipos_log[4]:
+            sql = "INSERT INTO log_produtos('tipo_evento', 'codigo_produto', 'instancia', 'instancia_codigo')" \
+            "VALUES(?,?,?,?)"
 
-            cur.execute(sql, (evento, codigo, 0))
+            cur.execute(sql, (evento, codigo, count, count_create))
 
-        elif evento == tipos_log[1]:
-            
-            cur.execute("SELECT COUNT(*) FROM log_produtos WHERE codigo_produto = ?", (codigo,))
-            count = cur.fetchone()[0]
-
-            sql = "INSERT INTO log_produtos('tipo_evento', 'valor_anterior', 'novo_valor', 'codigo_produto', 'campo', 'instancia')" \
-            "VALUES(?,?,?,?,?,?)"
-
-            cur.execute(sql, (evento, valor_antigo, valor_novo, codigo, campo, count))
+        elif evento == tipos_log[1] or evento == tipos_log[2] or evento == tipos_log[3]:
+            cur.execute(sql, (evento, valor_antigo, valor_novo, codigo, campo, count, count_create))
 
         conn.commit()
 
-    def importar_arquivo(self, path=None):
+    def importar_arquivo(self, path="arquivos_csv/arquivo.csv"):
+
+        status_importados = ["Sucesso!!!"]
 
         lista_produtos = []
         lista_codigo = []
 
-        with open("arquivos_csv/arquivo.csv") as arquivo:
+        with open(path) as arquivo:
             for linha in arquivo:
                 partes = linha.strip().split(',')
 
@@ -163,12 +190,12 @@ class GerenciarEstoque:
                     lista_produtos.append(tupla)
                     lista_codigo.append(tupla[0])
                 else:
-                    print("Código já existe. Item não cadastrado.")
+                    status_importados.append(f"{tupla[0]}: Código já existe. Item não cadastrado.")
 
         sql = "INSERT INTO produtos('codigo','nome', 'preco', 'quantidade', 'categorias_id')" \
             "VALUES (?,?,?,?,?)"
         
-        cur.executemany(sql, lista_produtos)
+        cur.executemany(sql, lista_produtos) 
 
         logs_gen = "CRIADO"
 
@@ -176,3 +203,5 @@ class GerenciarEstoque:
             self.gerar_logs(evento=logs_gen,codigo=codigo)
 
         conn.commit()
+
+        return status_importados
